@@ -1,0 +1,148 @@
+// This is your Prisma schema file.
+// Run `npm run db:generate` after changes
+// Run `npm run db:migrate` to apply to DB
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  githubId      String    @unique
+  username      String    @unique
+  name          String?
+  email         String?
+  avatarUrl     String?
+  accessToken   String    // encrypted GitHub OAuth token
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reviews       Review[]
+  comments      Comment[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Repository {
+  id           String   @id @default(cuid())
+  githubRepoId Int      @unique
+  owner        String
+  name         String
+  fullName     String   @unique
+  description  String?
+  isPrivate    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pullRequests PullRequest[]
+
+  @@map("repositories")
+}
+
+model PullRequest {
+  id           String     @id @default(cuid())
+  githubPrId   Int
+  number       Int
+  title        String
+  body         String?
+  state        PRState    @default(OPEN)
+  authorLogin  String
+  baseBranch   String
+  headBranch   String
+  diffUrl      String?
+  additions    Int        @default(0)
+  deletions    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  mergedAt     DateTime?
+
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+
+  reviews      Review[]
+  comments     Comment[]
+
+  @@unique([repositoryId, number])
+  @@map("pull_requests")
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  state     ReviewState  @default(PENDING)
+  body      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  pullRequestId String
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+
+  @@map("reviews")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String
+  filePath  String?
+  lineStart Int?
+  lineEnd   Int?
+  isAi      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  pullRequestId String
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+
+  @@map("comments")
+}
+
+model AiSuggestion {
+  id            String   @id @default(cuid())
+  pullRequestId String   // plain identifier — no FK, uses GitHub PR id as string
+  filePath      String
+  lineStart     Int
+  lineEnd       Int
+  suggestion    String
+  severity      String
+  category      String
+  createdAt     DateTime @default(now())
+
+  @@index([pullRequestId])
+  @@map("ai_suggestions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+enum PRState {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum ReviewState {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+  COMMENTED
+}
