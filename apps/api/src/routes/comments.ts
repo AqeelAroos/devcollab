@@ -31,7 +31,14 @@ commentsRouter.post("/", async (req: AuthRequest, res: Response) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
   const comment = await prisma.comment.create({
-    data: { ...parsed.data, userId: req.userId! },
+    data: {
+      body: parsed.data.body,
+      filePath: parsed.data.filePath,
+      lineStart: parsed.data.lineStart,
+      lineEnd: parsed.data.lineEnd,
+      pullRequestId: parsed.data.pullRequestId,
+      userId: req.userId!,
+    },
     include: { user: { select: { username: true, avatarUrl: true } } },
   });
 
