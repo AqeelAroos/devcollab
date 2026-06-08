@@ -39,3 +39,5 @@ app.use("/api/webhooks", webhooksRouter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use(errorHandler);
+
+export default app;
