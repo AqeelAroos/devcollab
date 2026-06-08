@@ -26,7 +26,12 @@ reviewsRouter.post("/", async (req: AuthRequest, res: Response) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
   const review = await prisma.review.create({
-    data: { ...parsed.data, userId: req.userId! },
+    data: {
+      state: parsed.data.state,
+      body: parsed.data.body,
+      pullRequestId: parsed.data.pullRequestId,
+      userId: req.userId!,
+    },
     include: { user: { select: { username: true, avatarUrl: true } } },
   });
 
