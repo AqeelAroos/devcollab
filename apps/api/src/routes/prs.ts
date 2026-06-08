@@ -17,20 +17,25 @@ prsRouter.get("/:owner/:repo", async (req: AuthRequest, res: Response) => {
 
     const { data } = await octokit.pulls.list({ owner, repo, state, per_page: 30 });
 
-    res.json(data.map((pr) => ({
-      id: pr.id,
-      number: pr.number,
-      title: pr.title,
-      state: pr.state,
-      author: pr.user?.login,
-      authorAvatar: pr.user?.avatar_url,
-      createdAt: pr.created_at,
-      updatedAt: pr.updated_at,
-      additions: pr.additions,
-      deletions: pr.deletions,
-      baseBranch: pr.base.ref,
-      headBranch: pr.head.ref,
-    })));
+    res.json(data.map((pr) => {
+      // Octokit's pulls.list() types omit additions/deletions even though
+      // the GitHub API returns them — cast to access the runtime values.
+      const p = pr as typeof pr & { additions?: number; deletions?: number };
+      return {
+        id: pr.id,
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        author: pr.user?.login,
+        authorAvatar: pr.user?.avatar_url,
+        createdAt: pr.created_at,
+        updatedAt: pr.updated_at,
+        additions: p.additions ?? 0,
+        deletions: p.deletions ?? 0,
+        baseBranch: pr.base.ref,
+        headBranch: pr.head.ref,
+      };
+    }));
   } catch {
     res.status(500).json({ error: "Failed to fetch pull requests" });
   }

@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import Groq from "groq-sdk";
 import { z } from "zod";
+import type { AiSuggestion } from "@prisma/client";
 import { prisma } from "../utils/prisma";
 import { authenticate, AuthRequest } from "../middleware/auth";
 import { aiRateLimiter } from "../middleware/rateLimiter";
@@ -82,7 +83,7 @@ aiRouter.get("/suggestions/:pullRequestId", async (req: AuthRequest, res: Respon
     where: { pullRequestId: req.params.pullRequestId },
     orderBy: { createdAt: "desc" },
   });
-  res.json(suggestions.map((s) => ({
+  res.json(suggestions.map((s: AiSuggestion) => ({
     id: s.id,
     filename: s.filePath,
     text: s.suggestion,
